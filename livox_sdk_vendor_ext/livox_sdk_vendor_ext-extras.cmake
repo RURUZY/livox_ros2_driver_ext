@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-list(INSERT CMAKE_MODULE_PATH 0 "${livox_sdk_vendor_DIR}/Modules")
+list(INSERT CMAKE_MODULE_PATH 0 "${livox_sdk_vendor_ext_DIR}/Modules")

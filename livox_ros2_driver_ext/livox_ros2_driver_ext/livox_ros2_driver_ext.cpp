@@ -29,7 +29,7 @@
 #include <thread>
 #include <vector>
 
-#include "include/livox_ros2_driver.h"
+#include "include/livox_ros2_driver_ext.h"
 
 #include "rclcpp/rclcpp.hpp"
 #include "pcl_conversions/pcl_conversions.h"
@@ -42,8 +42,8 @@
 #include "lds_lidar.h"
 #include "lds_lvx.h"
 #include "livox_sdk.h"
-#include "livox_interfaces/msg/custom_point.h"
-#include "livox_interfaces/msg/custom_msg.h"
+#include "livox_interfaces_ext/msg/custom_point.h"
+#include "livox_interfaces_ext/msg/custom_msg.h"
 
 namespace
 {

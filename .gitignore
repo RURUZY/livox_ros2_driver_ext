@@ -1,7 +1,7 @@
 
 # ignore dir or file
 livox_ros_driver/Livox-SDK
-livox_ros2_driver/launch/__pycache__/*.pyc
+livox_ros2_driver_ext/launch/__pycache__/*.pyc
 #whitelist
 
 

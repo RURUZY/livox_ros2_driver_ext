@@ -32,8 +32,8 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/msg/imu.hpp>
-#include "livox_interfaces/msg/custom_point.hpp"
-#include "livox_interfaces/msg/custom_msg.hpp"
+#include "livox_interfaces_ext/msg/custom_point.hpp"
+#include "livox_interfaces_ext/msg/custom_msg.hpp"
 
 #include "lds_lidar.h"
 #include "lds_lvx.h"
@@ -177,7 +177,7 @@ uint32_t Lddc::PublishPointcloud2(LidarDataQueue *queue, uint32_t packet_num,
     }
     /** Use the first packet timestamp as pointcloud2 msg timestamp */
     if (!published_packet) {
-      cloud.header.stamp = rclcpp::Time(timestamp);
+      cloud.header.stamp = rclcpp::Time(GetSyncedTimeNs(timestamp));
     }
     uint32_t single_point_num = storage_packet.point_num * echo_num;
 
@@ -284,7 +284,7 @@ uint32_t Lddc::PublishPointcloudData(LidarDataQueue *queue, uint32_t packet_num,
       }
     }
     if (!published_packet) {
-      cloud.header.stamp = timestamp / 1000.0;  // to pcl ros time stamp
+      cloud.header.stamp = GetSyncedTimeNs(timestamp) / 1000.0;  // to pcl ros time stamp
     }
     uint32_t single_point_num = storage_packet.point_num * echo_num;
 
@@ -337,12 +337,12 @@ uint32_t Lddc::PublishPointcloudData(LidarDataQueue *queue, uint32_t packet_num,
   return published_packet;
 }
 
-void Lddc::FillPointsToCustomMsg(livox_interfaces::msg::CustomMsg& livox_msg, \
+void Lddc::FillPointsToCustomMsg(livox_interfaces_ext::msg::CustomMsg& livox_msg, \
     LivoxPointXyzrtl* src_point, uint32_t num, uint32_t offset_time, \
     uint32_t point_interval, uint32_t echo_num) {
   LivoxPointXyzrtl* point_xyzrtl = (LivoxPointXyzrtl*)src_point;
   for (uint32_t i = 0; i < num; i++) {
-    livox_interfaces::msg::CustomPoint point;
+    livox_interfaces_ext::msg::CustomPoint point;
     if (echo_num > 1) { /** dual return mode */
       point.offset_time = offset_time + (i / echo_num) * point_interval;
     } else {
@@ -372,7 +372,7 @@ uint32_t Lddc::PublishCustomPointcloud(LidarDataQueue *queue,
     return 0;
   }
 
-  livox_interfaces::msg::CustomMsg livox_msg;
+  livox_interfaces_ext::msg::CustomMsg livox_msg;
   livox_msg.header.frame_id.assign(frame_id_);
   // livox_msg.header.seq = msg_seq;
   // ++msg_seq;
@@ -406,10 +406,12 @@ uint32_t Lddc::PublishCustomPointcloud(LidarDataQueue *queue,
     }
     /** first packet */
     if (!published_packet) {
-      livox_msg.timebase = timestamp;
+      uint64_t synced_time_ns = GetSyncedTimeNs(timestamp);
+
+      livox_msg.timebase = synced_time_ns;
       packet_offset_time = 0;
       /** convert to ros time stamp */
-      livox_msg.header.stamp = rclcpp::Time(timestamp);
+      livox_msg.header.stamp = rclcpp::Time(synced_time_ns);
     } else {
       packet_offset_time = (uint32_t)(timestamp - livox_msg.timebase);
     }
@@ -446,9 +448,9 @@ uint32_t Lddc::PublishCustomPointcloud(LidarDataQueue *queue,
     ++published_packet;
   }
 
-  rclcpp::Publisher<livox_interfaces::msg::CustomMsg>::SharedPtr publisher =
+  rclcpp::Publisher<livox_interfaces_ext::msg::CustomMsg>::SharedPtr publisher =
       std::dynamic_pointer_cast<rclcpp::Publisher
-      <livox_interfaces::msg::CustomMsg>>(GetCurrentPublisher(handle));  
+      <livox_interfaces_ext::msg::CustomMsg>>(GetCurrentPublisher(handle));  
   if (kOutputToRos == output_type_) {
     publisher->publish(livox_msg);
   } else {
@@ -482,7 +484,7 @@ uint32_t Lddc::PublishImuData(LidarDataQueue *queue, uint32_t packet_num,
   timestamp = GetStoragePacketTimestamp(&storage_packet, data_source);
   if (timestamp) {
     imu_data.header.stamp =
-        rclcpp::Time(timestamp);  // to ros time stamp
+        rclcpp::Time(GetSyncedTimeNs(timestamp));  // to ros time stamp
   }
 
   uint8_t point_buf[2048];
@@ -579,6 +581,20 @@ void Lddc::DistributeLidarData(void) {
   }
 }
 
+//System clock implementation
+uint64_t Lddc::GetSyncedTimeNs(uint64_t hw_time) {
+  if (!is_time_synced_ && hw_time > 0) {
+    initial_hw_time_ = hw_time;
+    
+    initial_ros_time_ = cur_node_->now().nanoseconds();
+    is_time_synced_ = true;
+    RCLCPP_INFO(cur_node_->get_logger(), "Livox Hardware clock synced to ROS System Time.");
+  }
+  
+  return initial_ros_time_ + (hw_time - initial_hw_time_);
+}
+
+
 std::shared_ptr<rclcpp::PublisherBase> Lddc::CreatePublisher(uint8_t msg_type,
     std::string &topic_name, uint32_t queue_size) {
     if (kPointCloud2Msg == msg_type) {
@@ -590,7 +606,7 @@ std::shared_ptr<rclcpp::PublisherBase> Lddc::CreatePublisher(uint8_t msg_type,
       RCLCPP_INFO(cur_node_->get_logger(),
           "%s publish use livox custom format", topic_name.c_str());
       return cur_node_->create_publisher<
-          livox_interfaces::msg::CustomMsg>(topic_name, queue_size);
+          livox_interfaces_ext::msg::CustomMsg>(topic_name, queue_size);
     }
 #if 0
     else if (kPclPxyziMsg == msg_type)  {

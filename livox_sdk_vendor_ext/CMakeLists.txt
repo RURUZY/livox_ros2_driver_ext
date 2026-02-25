@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.9)
 
-project(livox_sdk_vendor)
+project(livox_sdk_vendor_ext)
 
 find_package(ament_cmake REQUIRED)
 
@@ -46,4 +46,4 @@ endif()
 
 install(DIRECTORY cmake DESTINATION share/${PROJECT_NAME})
 
-ament_package(CONFIG_EXTRAS livox_sdk_vendor-extras.cmake)
+ament_package(CONFIG_EXTRAS livox_sdk_vendor_ext-extras.cmake)
