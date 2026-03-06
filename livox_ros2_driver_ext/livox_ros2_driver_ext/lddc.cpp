@@ -583,15 +583,19 @@ void Lddc::DistributeLidarData(void) {
 
 //System clock implementation
 uint64_t Lddc::GetSyncedTimeNs(uint64_t hw_time) {
-  if (!is_time_synced_ && hw_time > 0) {
-    initial_hw_time_ = hw_time;
+  static bool global_is_time_synced_ = false;
+  static uint64_t global_initial_hw_time_ = 0;
+  static uint64_t global_initial_ros_time_ = 0;
+
+  if (!global_is_time_synced_ && hw_time > 0) {
+    global_initial_hw_time_ = hw_time;
     
-    initial_ros_time_ = cur_node_->now().nanoseconds();
-    is_time_synced_ = true;
+    global_initial_ros_time_ = cur_node_->now().nanoseconds();
+    global_is_time_synced_ = true;
     RCLCPP_INFO(cur_node_->get_logger(), "Livox Hardware clock synced to ROS System Time.");
   }
   
-  return initial_ros_time_ + (hw_time - initial_hw_time_);
+  return global_initial_ros_time_ + (hw_time - global_initial_hw_time_);
 }
 
 

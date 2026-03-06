@@ -113,9 +113,9 @@ class Lddc {
   // rclcpp::rosbag::Bag *bag_;
   //System clock implementation
   uint64_t GetSyncedTimeNs(uint64_t hw_time);
-  uint64_t initial_hw_time_ = 0;
-  uint64_t initial_ros_time_ = 0;
-  bool is_time_synced_ = false;
+  // uint64_t initial_hw_time_ = 0;
+  // uint64_t initial_ros_time_ = 0;
+  // bool is_time_synced_ = false;
 };
 
 }  // namespace livox_ros
