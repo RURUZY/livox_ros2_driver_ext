@@ -595,7 +595,8 @@ uint64_t Lddc::GetSyncedTimeNs(uint64_t hw_time) {
     RCLCPP_INFO(cur_node_->get_logger(), "Livox Hardware clock synced to ROS System Time.");
   }
   
-  return global_initial_ros_time_ + (hw_time - global_initial_hw_time_);
+  // return global_initial_ros_time_ + (hw_time - global_initial_hw_time_);
+  return hw_time;
 }
 
 
