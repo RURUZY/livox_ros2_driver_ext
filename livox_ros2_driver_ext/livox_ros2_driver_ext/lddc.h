@@ -26,6 +26,10 @@
 
 #include <string>
 #include <memory>
+#include <mutex>
+#include <array>
+#include <std_msgs/msg/string.hpp>
+#include "time_guard.h"
 #include "lds.h"
 #include "livox_sdk.h"
 
@@ -67,15 +71,13 @@ class Lddc {
 
   uint8_t GetTransferFormat(void) { return transfer_format_; }
   uint8_t IsMultiTopic(void) { return use_multi_topic_; }
-  void SetRosNode(rclcpp::Node * node) { cur_node_ = node; }
+  void SetRosNode(rclcpp::Node * node);
   void SetPublishFrq(uint32_t frq) { publish_frq_ = frq; }
 
   Lds *lds_;
 
  private:
-  int32_t GetPublishStartTime(LidarDevice *lidar, LidarDataQueue *queue,
-                              uint64_t *start_time,
-                              StoragePacket *storage_packet);
+  friend struct LddcTimeTest;
   uint32_t PublishPointcloud2(LidarDataQueue *queue, uint32_t packet_num,
                               uint8_t handle);
   uint32_t PublishPointcloudData(LidarDataQueue *queue, uint32_t packet_num,
@@ -112,7 +114,27 @@ class Lddc {
   rclcpp::Node* cur_node_;
   // rclcpp::rosbag::Bag *bag_;
   //System clock implementation
-  uint64_t GetSyncedTimeNs(uint64_t hw_time);
+  uint64_t GetSyncedTimeNs(uint64_t hw_time, uint8_t timestamp_type);
+  bool require_ptp_ = false;
+  int ptp_utc_offset_seconds_ = 37;
+  bool AcceptPacket(uint8_t handle, StoragePacket& packet, bool imu);
+  void FlushTimeQueues(uint8_t handle);
+  void UpdateTimeStatus(uint8_t handle);
+  std::array<TimeGuard, kMaxSourceLidar> time_guards_;
+  std::array<uint64_t, kMaxSourceLidar> point_end_{};
+  struct StatusSnapshot {
+    bool seen = false;
+    bool ready = false;
+    std::string reason = "startup";
+    uint64_t faults = 0;
+    uint64_t overlaps = 0;
+    double last[2] = {0, 0};
+  };
+  std::array<StatusSnapshot, kMaxSourceLidar> status_;
+  std::mutex status_mutex_;
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr time_status_pub_;
+  rclcpp::TimerBase::SharedPtr time_status_timer_;
+  double max_gap_seconds_ = 1.0;
   // uint64_t initial_hw_time_ = 0;
   // uint64_t initial_ros_time_ = 0;
   // bool is_time_synced_ = false;

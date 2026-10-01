@@ -437,7 +437,7 @@ class Lds {
   void UpdateLidarInfoByEthPacket(LidarDevice *p_lidar, \
       LivoxEthPacket* eth_packet);
   uint8_t lidar_count_;                 /**< Lidar access handle. */
-  LidarDevice lidars_[kMaxSourceLidar]; /**< The index is the handle */
+  LidarDevice lidars_[kMaxSourceLidar]{}; /**< ResetLds frees queues; initialize pointers first. */
   Semaphore semaphore_;
 
  protected:

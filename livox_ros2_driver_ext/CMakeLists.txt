@@ -100,6 +100,14 @@ rclcpp_components_register_node(${PROJECT_NAME}
 )
 
 if(BUILD_TESTING)
+  add_executable(time_guard_test test/time_guard_test.cpp livox_ros2_driver_ext/ldq.cpp)
+  target_include_directories(time_guard_test PRIVATE livox_ros2_driver_ext)
+  add_test(NAME time_guard_test COMMAND time_guard_test)
+  ament_auto_add_executable(lddc_time_test test/lddc_time_test.cpp)
+  target_include_directories(lddc_time_test PRIVATE ${livox_sdk_INCLUDE_DIRS})
+  target_link_libraries(lddc_time_test ${PROJECT_NAME})
+  add_test(NAME lddc_time_test COMMAND lddc_time_test)
+  set_tests_properties(lddc_time_test PROPERTIES ENVIRONMENT "ROS_DOMAIN_ID=222" TIMEOUT 30)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
   # uncomment the line when a copyright and license is not present in all source files
